@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCZone | วงล้อรางวัล</title>
+<style>
+:root{
+  --bg:#f3f1ec; --card:#ffffff; --ink:#1c2230; --muted:#6a7080; --line:#dcd8cf;
+  --accent:#e4572e; --accent-ink:#fff; --ok:#1d8a5b; --bad:#c23b3b;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141821;--card:#1d2330;--ink:#eceef3;--muted:#9aa1b2;--line:#2c3446;--accent:#ff7a4d;--accent-ink:#1a0d07;--ok:#4cc38a;--bad:#ff7b7b}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;line-height:1.5}
+main{max-width:520px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+h2{font-size:1.05rem;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.credits{display:flex;align-items:baseline;justify-content:space-between}
+.credits b{font-size:2rem;color:var(--accent)}
+.wheel-wrap{position:relative;width:min(88vw,360px);margin:6px auto 14px}
+canvas{width:100%;height:auto;display:block}
+.pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--ink)}
+#spin{width:100%;font-size:1.1rem;padding:14px}
+#msg{min-height:1.5em;margin:10px 0 0;text-align:center;font-weight:600}
+#msg.ok{color:var(--ok)} #msg.bad{color:var(--bad)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+li:last-child{border:0}
+.muted{color:var(--muted)}
+.hidden{display:none}
+code{background:var(--bg);padding:2px 7px;border-radius:6px;border:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+  <h1>วงล้อรางวัล PCZone</h1>
+  <p class="sub">ใส่ชื่อผู้ใช้ แล้วใช้สิทธิ์หมุนวงล้อรับรางวัล</p>
+
+  <section class="card" id="login">
+    <h2>ชื่อผู้ใช้</h2>
+    <div class="row">
+      <input id="uname" placeholder="เช่น somchai" maxlength="30" autocomplete="off">
+      <button id="loginBtn">เข้าสู่ระบบ</button>
+    </div>
+  </section>
+
+  <section class="hidden" id="game">
+    <div class="card">
+      <div class="credits"><span>สิทธิ์หมุนของ <b id="who" style="font-size:inherit;color:inherit"></b></span><b id="credits">0</b></div>
+      <div class="row" style="margin-top:10px">
+        <input id="code" placeholder="กรอกโค้ดรับสิทธิ์" autocomplete="off">
+        <button class="ghost" id="redeem">แลกโค้ด</button>
+      </div>
+      <button class="ghost" id="daily" style="width:100%;margin-top:8px">รับสิทธิ์ฟรีรายวัน (1 สิทธิ์)</button>
+    </div>
+
+    <div class="card">
+      <div class="wheel-wrap"><div class="pointer"></div><canvas id="wheel" width="720" height="720"></canvas></div>
+      <button id="spin">หมุนวงล้อ (ใช้ 1 สิทธิ์)</button>
+      <p id="msg" aria-live="polite"></p>
+    </div>
+
+    <div class="card"><h2>ประวัติของฉัน</h2><ul id="hist"></ul></div>
+  </section>
+
+  <section class="card hidden" id="adminCard">
+    <h2>แอดมิน</h2>
+    <div id="adminLock" class="row">
+      <input id="pin" type="password" placeholder="รหัส PIN แอดมิน">
+      <button class="ghost" id="pinBtn">ปลดล็อก</button>
+    </div>
+    <div id="adminPanel" class="hidden">
+      <p class="muted" style="margin:0 0 6px">เพิ่มสิทธิ์ให้ผู้ใช้</p>
+      <div class="row">
+        <input id="aUser" placeholder="ชื่อผู้ใช้">
+        <input id="aN" type="number" value="1" min="1" style="max-width:80px">
+        <button id="aGrant">เพิ่ม</button>
+      </div>
+      <p class="muted" style="margin:14px 0 6px">สร้างโค้ดแจกสิทธิ์ (ใช้ได้ครั้งเดียว)</p>
+      <div class="row">
+        <input id="cN" type="number" value="1" min="1" style="max-width:80px">
+        <button id="cGen">สร้างโค้ด</button>
+      </div>
+      <p id="aMsg" class="muted"></p>
+      <p class="muted" style="margin:10px 0 6px">โค้ดที่ยังไม่ถูกใช้</p>
+      <ul id="codes"></ul>
+      <p class="muted" style="margin:14px 0 6px">ผู้ใช้ทั้งหมด</p>
+      <ul id="users"></ul>
+    </div>
+  </section>
+  <p class="muted" style="text-align:center;font-size:.8rem">เปิดโหมดแอดมินโดยเติม <code>#admin</code> ต่อท้าย URL</p>
+</main>
+
+<script>
+/* ============ ตั้งค่า ============ */
+const ADMIN_PIN = "1234";            // เปลี่ยนก่อนใช้งานจริง
+const DAILY_FREE = 1;                // สิทธิ์ฟรีรายวัน (0 = ปิด)
+const PRIZES = [                     // weight = โอกาสถูก (ยิ่งมากยิ่งออกบ่อย)
+  {label:"ส่วนลด 5%",    weight:30, color:"#e4572e"},
+  {label:"ลองใหม่",       weight:25, color:"#4b5b8c"},
+  {label:"ส่วนลด 10%",   weight:15, color:"#f2a541"},
+  {label:"เมาส์แพด",      weight:10, color:"#2f9e8f"},
+  {label:"ส่วนลด 15%",   weight:8,  color:"#8e5ea2"},
+  {label:"คีย์แคป",       weight:6,  color:"#d1495b"},
+  {label:"เมาส์ Gaming",  weight:4,  color:"#3a86c8"},
+  {label:"ส่วนลด 500฿",  weight:2,  color:"#1d8a5b"}
+];
+/* ================================ */
+
+const $ = id => document.getElementById(id);
+const DB_KEY = "pcz_wheel_v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(DB_KEY)) || {users:{},codes:{}}; } catch(e){ return {users:{},codes:{}}; } };
+const save = db => { try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){} };
+const today = () => new Date().toISOString().slice(0,10);
+const norm = s => s.trim().toLowerCase();
+let current = null, angle = 0, spinning = false;
+
+function user(db, name){
+  return db.users[name] || (db.users[name] = {credits:0, lastDaily:"", history:[]});
+}
+function say(el, t, cls){ el.textContent = t; el.className = cls || ""; }
+
+/* ---------- วงล้อ ---------- */
+const cv = $("wheel"), ctx = cv.getContext("2d");
+function draw(){
+  const n = PRIZES.length, R = cv.width/2, step = Math.PI*2/n;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save(); ctx.translate(R,R); ctx.rotate(angle);
+  PRIZES.forEach((p,i)=>{
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R-6,i*step,(i+1)*step); ctx.closePath();
+    ctx.fillStyle = p.color; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+    ctx.save(); ctx.rotate(i*step+step/2); ctx.textAlign="right"; ctx.fillStyle="#fff";
+    ctx.font = "600 34px 'Noto Sans Thai',sans-serif"; ctx.fillText(p.label, R-34, 12); ctx.restore();
+  });
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(R,R,34,0,Math.PI*2); ctx.fillStyle="#fff"; ctx.fill();
+  ctx.lineWidth=6; ctx.strokeStyle="#1c2230"; ctx.stroke();
+}
+function pickPrize(){
+  const total = PRIZES.reduce((s,p)=>s+p.weight,0);
+  let r = Math.random()*total;
+  for(let i=0;i<PRIZES.length;i++){ if((r-=PRIZES[i].weight)<0) return i; }
+  return 0;
+}
+function animateTo(idx, done){
+  const n = PRIZES.length, step = Math.PI*2/n;
+  // ตัวชี้อยู่ด้านบน (มุม -90°) ให้กึ่งกลางช่อง idx มาอยู่ตรงนั้น
+  const jitter = (Math.random()-.5)*step*0.7;
+  const target = -Math.PI/2 - (idx*step + step/2 + jitter);
+  const start = angle, turns = Math.PI*2*(5+Math.floor(Math.random()*3));
+  let end = target - turns; while(end > start) end -= Math.PI*2;
+  const dur = 4800, t0 = performance.now();
+  (function frame(t){
+    const k = Math.min((t-t0)/dur,1), e = 1-Math.pow(1-k,4);
+    angle = start + (end-start)*e; draw();
+    k<1 ? requestAnimationFrame(frame) : done();
+  })(t0);
+}
+
+/* ---------- ผู้ใช้ ---------- */
+function render(){
+  const db = load(), u = user(db, current);
+  $("who").textContent = current;
+  $("credits").textContent = u.credits;
+  $("spin").disabled = spinning || u.credits < 1;
+  $("daily").classList.toggle("hidden", !DAILY_FREE);
+  $("daily").disabled = u.lastDaily === today();
+  $("daily").textContent = u.lastDaily === today() ? "วันนี้รับสิทธิ์ฟรีแล้ว" : `รับสิทธิ์ฟรีรายวัน (${DAILY_FREE} สิทธิ์)`;
+  $("hist").innerHTML = u.history.length
+    ? u.history.slice(0,10).map(h=>`<li><span>${h.text}</span><span class="muted">${h.time}</span></li>`).join("")
+    : '<li class="muted">ยังไม่มีประวัติ</li>';
+}
+function log(u, text){ u.history.unshift({text, time:new Date().toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})}); u.history = u.history.slice(0,50); }
+
+$("loginBtn").onclick = () => {
+  const n = norm($("uname").value);
+  if(!n){ $("uname").focus(); return; }
+  current = n; localStorage.setItem("pcz_last_user", n);
+  const db = load(); user(db,n); save(db);
+  $("login").classList.add("hidden"); $("game").classList.remove("hidden"); render();
+};
+$("uname").addEventListener("keydown", e => e.key==="Enter" && $("loginBtn").click());
+
+$("daily").onclick = () => {
+  const db = load(), u = user(db,current);
+  if(u.lastDaily === today()) return;
+  u.lastDaily = today(); u.credits += DAILY_FREE; log(u, `รับสิทธิ์ฟรีรายวัน +${DAILY_FREE}`);
+  save(db); say($("msg"), `ได้รับ ${DAILY_FREE} สิทธิ์`, "ok"); render();
+};
+
+$("redeem").onclick = () => {
+  const c = $("code").value.trim().toUpperCase();
+  const db = load(), u = user(db,current);
+  if(!c) return;
+  const rec = db.codes[c];
+  if(!rec || rec.used){ say($("msg"), "โค้ดไม่ถูกต้องหรือถูกใช้แล้ว", "bad"); return; }
+  rec.used = true; rec.by = current; u.credits += rec.spins; log(u, `แลกโค้ด ${c} +${rec.spins}`);
+  save(db); $("code").value = ""; say($("msg"), `แลกโค้ดสำเร็จ +${rec.spins} สิทธิ์`, "ok"); render();
+};
+
+$("spin").onclick = () => {
+  if(spinning) return;
+  const db = load(), u = user(db,current);
+  if(u.credits < 1){ say($("msg"), "สิทธิ์ไม่พอ", "bad"); return; }
+  u.credits -= 1; save(db);            // หักสิทธิ์ก่อนหมุน กันรีเฟรชหนี
+  const idx = pickPrize(); spinning = true; say($("msg"), "กำลังหมุน…"); render();
+  animateTo(idx, () => {
+    const db2 = load(), u2 = user(db2,current);
+    log(u2, `หมุนได้: ${PRIZES[idx].label}`); save(db2);
+    spinning = false; say($("msg"), `ยินดีด้วย! คุณได้ ${PRIZES[idx].label}`, "ok"); render();
+  });
+};
+
+/* ---------- แอดมิน ---------- */
+function renderAdmin(){
+  const db = load();
+  const codes = Object.entries(db.codes).filter(([,r])=>!r.used);
+  $("codes").innerHTML = codes.length ? codes.map(([c,r])=>`<li><code>${c}</code><span>${r.spins} สิทธิ์</span></li>`).join("") : '<li class="muted">ไม่มี</li>';
+  const us = Object.entries(db.users);
+  $("users").innerHTML = us.length ? us.map(([n,u])=>`<li><span>${n}</span><span>${u.credits} สิทธิ์</span></li>`).join("") : '<li class="muted">ไม่มี</li>';
+}
+if(location.hash === "#admin") $("adminCard").classList.remove("hidden");
+$("pinBtn").onclick = () => {
+  if($("pin").value === ADMIN_PIN){ $("adminLock").classList.add("hidden"); $("adminPanel").classList.remove("hidden"); renderAdmin(); }
+  else say($("aMsg"), "PIN ไม่ถูกต้อง", "bad");
+};
+$("aGrant").onclick = () => {
+  const n = norm($("aUser").value), k = parseInt($("aN").value,10);
+  if(!n || !(k>0)) return;
+  const db = load(), u = user(db,n); u.credits += k; log(u, `แอดมินเพิ่มให้ +${k}`); save(db);
+  say($("aMsg"), `เพิ่ม ${k} สิทธิ์ให้ ${n} แล้ว`, "ok"); renderAdmin(); if(current) render();
+};
+$("cGen").onclick = () => {
+  const k = parseInt($("cN").value,10); if(!(k>0)) return;
+  const a = new Uint32Array(2); crypto.getRandomValues(a);
+  const c = "PCZ-" + a[0].toString(36).toUpperCase().slice(0,4) + "-" + a[1].toString(36).toUpperCase().slice(0,4);
+  const db = load(); db.codes[c] = {spins:k, used:false}; save(db);
+  say($("aMsg"), `สร้างโค้ด ${c} (${k} สิทธิ์) แล้ว`, "ok"); renderAdmin();
+};
+
+draw();
+const last = localStorage.getItem("pcz_last_user"); if(last) $("uname").value = last;
+</script>
+</body>
+</html>
